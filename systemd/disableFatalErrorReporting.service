@@ -1,0 +1,16 @@
+# This should go in /usr/lib/systemd/system/disableFatalErrorReporting.service
+
+[Unit]
+Description=Disables automatic reboot when we reload the bitfile of the KCU1500
+
+[Service]
+Type=simple
+PIDFile=/run/disable_fatal_error_reporting.pid
+ExecStart=/home/scouter/scouting-es/scripts/disableFatalErrorReporting.sh 82:00.0
+User=root
+Group=root
+WorkingDirectory=/home/scouter/scouting-es/scripts
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

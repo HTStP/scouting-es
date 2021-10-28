@@ -1,0 +1,17 @@
+# This should go in /usr/lib/systemd/system/runFileMover.service on the scoutBU
+
+[Unit]
+Description=Moves scouting files from the RAMdisk to final storage
+
+[Service]
+Type=simple
+PIDFile=/run/runFileMover.pid
+ExecStart=/home/scouter/scouting-es/scripts/fileMover.py
+User=scouter
+Group=scouter
+WorkingDirectory=/home/scouter/scouting-es/scripts
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

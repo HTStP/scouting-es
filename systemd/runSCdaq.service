@@ -1,0 +1,17 @@
+# This should go in /usr/lib/systemd/system/runSCdaq.service on the scoutdaq machine
+
+[Unit]
+Description=Wrapper script to run scdaq
+
+[Service]
+Type=simple
+PIDFile=/run/runSCdaq.pid
+ExecStart=/home/scouter/scouting-es/scripts/run.sh
+User=scouter
+Group=scouter
+WorkingDirectory=/home/scouter/scouting-es/scripts
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

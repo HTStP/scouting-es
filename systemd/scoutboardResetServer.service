@@ -1,0 +1,17 @@
+# This should go in /usr/lib/systemd/system/scoutboard_reset_server.service on the scoutdaq machine
+
+[Unit]
+Description=Server that can reset the scouting board via the Xilinx VIO on request
+
+[Service]
+Type=simple
+PIDFile=/run/scoutboard_reset_server.pid
+ExecStart=/home/scouter/scouting-es/scripts/vivado/reset_server.sh
+User=scouter
+Group=scouter
+WorkingDirectory=/home/scouter/scouting-es/scripts/vivado
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
