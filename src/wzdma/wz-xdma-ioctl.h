@@ -1,4 +1,7 @@
 #include <wz-xdma-consts.h>
+#include "stdint.h"
+#include <sys/types.h>
+#include <unistd.h>
 #ifndef WZ_XDMA_IOCTL_H
 #define WZ_XDMA_IOCTL_H 1
 //Structures used to notify the application about the received block of data

@@ -5,18 +5,18 @@
 #   "file"      for reading from file
 #   "micronDMA" for PICO driver
 
-input:wzdma
+#input:wzdma
 #input:filedma
-#input:micronDMA
+input:micronDMA
 
 
 ##settings for Micron board option
 
-loadBitFile:no
-#loadBitFile:yes
+#loadBitFile:no
+loadBitFile:yes
 
 #must be in tgz format, produced by pico utility package_flash
-bitFileName:$BASE/pico_261021_0.tgz
+bitFileName:/home/tjames/bitfiles/sb852/pico_121121_0.tgz
 
 
 ## Settings for DMA input
@@ -26,7 +26,8 @@ dma_dev:/dev/xdma0_c2h_0
 
 # Max received packet size in bytes (buffer to reserve)
 #dma_packet_buffer_size:1048576 #for KCU1500/VCU128
-dma_packet_buffer_size:1920032 #for Micron board
+#for Micron board
+dma_packet_buffer_size:1920032
 
 # Number of packet buffers to allocate
 dma_number_of_packet_buffers:1000
@@ -50,7 +51,7 @@ output_filename_base:/fff/BU0/ramdisk/scdaq
 max_file_size:8589934592
 
 # Always write data to a file regardless of the run status, usefull for debugging
-output_force_write:no
+output_force_write:yes
 
 
 # Elastics processor

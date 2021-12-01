@@ -14,10 +14,10 @@
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 
-
 #include "InputFilter.h"
 #include "FileDmaInputFilter.h"
 #include "WZDmaInputFilter.h"
+#include "MicronDmaInputFilter.h"
 #include "DmaInputFilter.h"
 #include "processor.h"
 #include "elastico.h"
@@ -39,7 +39,8 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
   size_t packetBufferSize = conf.getDmaPacketBufferSize();
   size_t nbPacketBuffers = conf.getNumberOfDmaPacketBuffers();
 
-  // Create empty input reader, will assign later when we know what is the data source
+
+  // Create empty input reader, will assing later when we know what is the data source 
   std::shared_ptr<InputFilter> input_filter;
 
   // Create the pipeline
@@ -48,15 +49,20 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
   if (input == config::InputType::DMA) {
       // Create DMA reader
       input_filter = std::make_shared<DmaInputFilter>( conf.getDmaDevice(), packetBufferSize, nbPacketBuffers, control );
-
+  
   } else if (input == config::InputType::FILEDMA) {
       // Create FILE DMA reader
       input_filter = std::make_shared<FileDmaInputFilter>( conf.getInputFile(), packetBufferSize, nbPacketBuffers, control );
 
   } else if (input == config::InputType::WZDMA ) {
-      // Create WZ DMA reader
+      
+	// Create WZ DMA reader
       input_filter = std::make_shared<WZDmaInputFilter>( packetBufferSize, nbPacketBuffers, control );
 
+  
+  } else if (input == config::InputType::MICRONDMA ) {
+      // create MicronDmaInputFilter reader
+      input_filter = std::make_shared<MicronDmaInputFilter>(packetBufferSize, nbPacketBuffers, control, conf) ;
   } else {
     throw std::invalid_argument("Configuration error: Unknown input type was specified");
   }
@@ -64,9 +70,10 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
   // Add input reader to a pipeline
   pipeline.add_filter( *input_filter );
 
+
   // Create reformatter and add it to the pipeline
   // TODO: Created here so we are not subject of scoping, fix later...
-  StreamProcessor stream_processor(packetBufferSize, conf.getDoZS()); 
+  StreamProcessor stream_processor(packetBufferSize, conf.getDoZS(), conf.getSystemName(), conf.getInput()); 
   if ( conf.getEnableStreamProcessor() ) {
     pipeline.add_filter( stream_processor );
   }
@@ -119,6 +126,7 @@ int main( int argc, char* argv[] ) {
 
     control.running = false;
     control.run_number = 0;
+    control.system_name = conf.getSystemName();
     control.max_file_size = conf.getOutputMaxFileSize();//in Bytes
     control.packets_per_report = conf.getPacketsPerReport();
     control.output_force_write = conf.getOutputForceWrite();

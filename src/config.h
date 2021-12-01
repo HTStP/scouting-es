@@ -10,7 +10,7 @@
 class config{
 public:
   
-  enum class InputType { WZDMA, DMA, FILEDMA, FILE };
+  enum class InputType { WZDMA, DMA, FILEDMA, MICRONDMA, FILE };
 
   config(std::string filename);
 
@@ -26,7 +26,10 @@ public:
     }
     if (input == "filedma") {
       return InputType::FILEDMA;
-    }    
+    }
+    if (input == "micronDMA") {
+      return InputType::MICRONDMA;
+    }        
     if (input == "file") {
       return InputType::FILE;
     }
@@ -48,6 +51,9 @@ public:
     std::string v = vmap.at("packets_per_report");
     return boost::lexical_cast<uint32_t>(v.c_str()); 
   } 
+  const std::string& getSystemName() const {
+    return vmap.at("system_name");
+  }
   const std::string& getInputFile() const {
     return vmap.at("input_file");
   }
@@ -64,7 +70,12 @@ public:
     return boost::lexical_cast<uint32_t>(v.c_str());
   }
 
-  const std::string& getOutputFilenameBase() const 
+  const std::string& getBitFileName() const 
+  {
+    return vmap.at("bitFileName");
+  }
+ 
+   const std::string& getOutputFilenameBase() const 
   {
     return vmap.at("output_filename_base");
   }
@@ -74,6 +85,10 @@ public:
   }
   bool getOutputForceWrite() const {
     return (true ? vmap.at("output_force_write") == "yes" : false);
+  }
+  
+  bool getLoadBitFile() const {
+    return (true ? vmap.at("loadBitFile") == "yes" : false);
   }
 
   uint32_t getNumThreads() const {

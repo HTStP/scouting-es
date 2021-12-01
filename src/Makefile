@@ -12,7 +12,7 @@
 TARGET = scdaq
 
 # source files
-SOURCES = config.cc DmaInputFilter.cc elastico.cc FileDmaInputFilter.cc InputFilter.cc output.cc processor.cc scdaq.cc session.cc slice.cc WZDmaInputFilter.cc
+SOURCES = config.cc DmaInputFilter.cc elastico.cc FileDmaInputFilter.cc InputFilter.cc output.cc processor.cc scdaq.cc session.cc slice.cc WZDmaInputFilter.cc MicronDmaInputFilter.cc
 C_SOURCES = wz_dma.c
 
 # work out names of object files from sources
@@ -27,7 +27,7 @@ CXXFLAGS = -std=c++11 -Wall -Wextra -O0 -g -rdynamic
 #CXXFLAGS = -std=c++11 -Wall -Wextra -g -rdynamic
 
 CFLAGS = $(CXXFLAGS)
-LDFLAGS = -ltbb -ltbbmalloc -lboost_thread -lcurl
+LDFLAGS = -Llibmicron -ltbb -ltbbmalloc -lboost_thread -lcurl -lpthread -lcrypto
 
 CPPFLAGS = -I. -Iwzdma
 
@@ -43,7 +43,7 @@ clean:
 # dependencies separated by spaces (duplicates removed),
 # here ${OBJECTS}
 ${TARGET}: ${OBJECTS}
-	${LINK.cc} -o $@ $^
+	${LINK.cc} -o $@ $^ -lmicron
 
 # no rule is needed here for compilation as make already
 # knows how to do it
@@ -69,3 +69,4 @@ session.o:	session.h log.h
 slice.o: 	slice.h
 WZDmaInputFilter.o:	WZDmaInputFilter.h InputFilter.h tools.h log.h
 wz_dma.o:	wz_dma.h
+MicronDmaInputFilter.o: MicronDmaInputFilter.h libmicron/micron_dma.h

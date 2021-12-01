@@ -20,10 +20,10 @@ static void create_output_directory(std::string& output_directory)
   if (stat(output_directory.c_str(), &sb) == 0) {
       if (S_ISDIR (sb.st_mode)) {
           // Is already existing
-          LOG(TRACE) << "Output directory is already existing: " << output_directory << "'.";    
+          LOG(TRACE) << "Output directory already exists: " << output_directory << "'.";    
           return;
       }
-      std::string err = "ERROR The output directory path '" + output_directory + "' is existing, but the path is not a directory!";
+      std::string err = "ERROR The output directory path '" + output_directory + "' exists, but the path is not a directory!";
       LOG(ERROR) << err;
       throw std::runtime_error(err);
   }

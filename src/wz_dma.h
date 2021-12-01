@@ -2,7 +2,7 @@
 #define WZ_XDMA_H
 
 #include "wzdma/xdma-ioctl.h"
-
+#include "stdint.h"
 #define TOT_BUF_LEN ((int64_t) WZ_DMA_BUFLEN * (int64_t) WZ_DMA_NOFBUFS)
 
 struct wz_private {

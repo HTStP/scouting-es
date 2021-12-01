@@ -19,16 +19,14 @@ InputFilter::InputFilter(size_t packetBufferSize, size_t nbPacketBuffers, ctrl& 
     minBytesRead_ = SSIZE_MAX;
     maxBytesRead_ = 0;
     previousNbReads_ = 0;
-
     LOG(TRACE) << "Configuration translated into:";
     LOG(TRACE) << "  MAX_BYTES_PER_INPUT_SLICE: " << packetBufferSize;
-    LOG(TRACE) << "  TOTAL_SLICES: " << nbPacketBuffers;
+    LOG(TRACE) << "  TOTAL_SLICES: " << nbPacketBuffers; 
     LOG(TRACE) << "Created input filter and allocated at " << static_cast<void*>(nextSlice_);
 }
 
 InputFilter::~InputFilter() {
   LOG(TRACE) << "Destroy input filter and delete at " << static_cast<void*>(nextSlice_);
-
   Slice::giveAllocated(nextSlice_);
   LOG(DEBUG) << "Input operator performed " << nbReads_ << " read";
 }
@@ -161,7 +159,6 @@ void* InputFilter::operator()(void*) {
     dumpPacketTrailer( nextSlice_->begin(), bytesRead, log );
     LOG(INFO) << log.str();
   }
-
   // Have more data to process.
   Slice* thisSlice = nextSlice_;
   nextSlice_ = Slice::getAllocated();
