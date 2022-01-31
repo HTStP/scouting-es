@@ -2,7 +2,8 @@
 #define SLICE_H
 
 #include <stdint.h>
-#include "tbb/tbb_allocator.h"
+//#include "tbb/tbb_allocator.h"
+#include "tbb/scalable_allocator.h"
 #include "tbb/concurrent_queue.h"
 
 //! Holds a slice of data.
@@ -18,7 +19,12 @@ class Slice {
 public:
   //! Allocate a Slice object that can hold up to max_size bytes
   static Slice* allocate( size_t max_size ) {
-    Slice* t = (Slice*)tbb::zero_allocator<char>().allocate( sizeof(Slice)+max_size );
+    //Slice* t = (Slice*)tbb::zero_allocator<char>().allocate( sizeof(Slice)+max_size );
+
+    // Replacing tbb::zero_allocator with aligned allocator.
+    // Alignment to 32 bytes (256 bits) is required by MicronDMA.
+    Slice* t = (Slice*) scalable_aligned_malloc( sizeof(Slice)+max_size, 32);
+
     t->logical_end = t->begin();
     t->physical_end = t->begin()+max_size;
     t->counts = 0;
@@ -34,7 +40,9 @@ public:
   //! Free a Slice object 
   void free() {
     //	fprintf(stderr,"slice free at 0x%llx \n",(unsigned long long) this);
-    tbb::tbb_allocator<char>().deallocate((char*)this,sizeof(Slice)+(physical_end-begin())+1);
+    //tbb::tbb_allocator<char>().deallocate((char*)this,sizeof(Slice)+(physical_end-begin())+1);
+
+    scalable_aligned_free( this );
   } 
   //! Pointer to beginning of sequence
   char* begin() {return (char*)(this+sizeof(Slice));}

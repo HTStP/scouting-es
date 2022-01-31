@@ -112,7 +112,7 @@ inline ssize_t WZDmaInputFilter::read_packet( char **buffer, size_t bufferSize )
 
       // Oversized packet is usually sign of link problem
       // Let's try to reset the board
-      LOG(ERROR) << "Goging to reset the board:";
+      LOG(ERROR) << "Going to reset the board:";
       if (wz_reset_board() < 0) {
         LOG(ERROR) << "Reset finished";
       } else {
@@ -158,14 +158,11 @@ void WZDmaInputFilter::print(std::ostream& out) const
 // Read a packet from DMA
 ssize_t WZDmaInputFilter::readInput(char **buffer, size_t bufferSize)
 {
-  // We need at least 1MB buffer
-  assert( bufferSize >= 1024*1024 );
-
   return read_packet( buffer, bufferSize );
 }
 
 
-// Notifi the DMA that packet was processed
+// Notify the DMA that packet was processed
 void WZDmaInputFilter::readComplete(char *buffer) {
   (void)(buffer);
 

@@ -13,7 +13,7 @@ class Slice;
 
 /*
  * This is an abstract class.
- * A dervide class has to implement methods readInput and readComplete
+ * A derived class has to implement methods readInput and readComplete
  */ 
 class InputFilter: public tbb::filter {
 public:
@@ -39,7 +39,7 @@ private:
 
   // NOTE: This can be moved out of this class into a separate one
   //       and run in a single thread in order to do reporting...
-  void printStats(std::ostream& out);
+  void printStats(std::ostream& out, ssize_t lastBytesRead);
 
 private:
   ctrl& control_;
@@ -47,10 +47,10 @@ private:
   Slice* nextSlice_;
   //uint32_t counts;
 
-  // Number of successfull reads
+  // Number of successful reads
   uint64_t nbReads_;
 
-  // Number of byted read
+  // Number of bytes read
   uint64_t nbBytesRead_;
 
   // For Performance monitoring

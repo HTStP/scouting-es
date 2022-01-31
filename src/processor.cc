@@ -62,7 +62,7 @@ Slice* StreamProcessor::process(Slice& input, Slice& out)
 			}
 			bool brill_enabled = 0;
 
-			if( ( brill_enabled) && ((bl->orbit[i] == 0xFF) ||( bl->bx[i] == 0xFF) ||( bl->mu1f[i] == 0xFF) || 
+			if(( brill_enabled) && ((bl->orbit[i] == 0xFF) ||( bl->bx[i] == 0xFF) ||( bl->mu1f[i] == 0xFF) || 
 					(bl->mu1s[i] == 0xFF) ||( bl->mu2f[i] == 0xFF) ||( bl->mu2s[i] == 0xFF))){
 				brill_word = true;
 			}
