@@ -96,14 +96,6 @@ public:
     std::string v = vmap.at("threads");
     return boost::lexical_cast<uint32_t>(v.c_str());
   }
-  uint32_t getNumInputBuffers() const {
-    std::string v = vmap.at("input_buffers");
-    return boost::lexical_cast<uint32_t>(v.c_str());
-  }
-  uint32_t getBlocksPerInputBuffer() const {
-    std::string v = vmap.at("blocks_buffer");
-    return boost::lexical_cast<uint32_t>(v.c_str());
-  }
   short getPortNumber() const {
     std::string v = vmap.at("port");
     return boost::lexical_cast<short>(v.c_str());

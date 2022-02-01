@@ -2,7 +2,6 @@
 #define CONTROLS_H
 #include <stdint.h>
 #include <atomic>
-#include <string.h>
 
 struct ctrl {
   uint32_t run_number;
