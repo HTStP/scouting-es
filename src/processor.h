@@ -11,7 +11,10 @@ class Slice;
 
 class StreamProcessor: public tbb::filter {
 public:
-  StreamProcessor(size_t, bool, std::string);
+  enum class ProcessorType { PASS_THROUGH, GMT };
+
+public:
+  StreamProcessor(size_t max_size_, bool doZS_, ProcessorType processorType_);
   void* operator()( void* item )/*override*/;
   ~StreamProcessor();
 
@@ -23,7 +26,7 @@ private:
   size_t max_size;
   uint64_t nbPackets;
   bool doZS;
-  std::string systemName;
+  ProcessorType processorType;
 };
 
 #endif

@@ -114,7 +114,7 @@ void* OutputStream::operator()( void* item )
 }
 
 /*
- * Create a properly formated file name
+ * Create a properly formatted file name
  * TODO: Change to C++
  */
 static std::string format_run_file_stem(std::string& filename_prefix, uint32_t run_number, int32_t file_count)
@@ -178,7 +178,7 @@ void OutputStream::open_next_file()
     LOG(INFO) << "  using index:      " << file_count;    
   }
 
-  // Create the ouput directory
+  // Create the output directory
   std::string output_directory = my_output_filename_base + "/" + working_dir;
   create_output_directory(output_directory);
 

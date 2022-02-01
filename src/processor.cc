@@ -4,12 +4,12 @@
 #include "log.h"
 #include <iomanip>
 
-StreamProcessor::StreamProcessor(size_t max_size_, bool doZS_, std::string systemName_) : 
+StreamProcessor::StreamProcessor(size_t max_size_, bool doZS_, ProcessorType processorType_) :
 	tbb::filter(parallel),
 	max_size(max_size_),
 	nbPackets(0),
 	doZS(doZS_),
-	systemName(systemName_)
+	processorType(processorType_)
 { 
 	LOG(TRACE) << "Created transform filter at " << static_cast<void*>(this);
 	myfile.open ("example.txt");
@@ -28,11 +28,12 @@ Slice* StreamProcessor::process(Slice& input, Slice& out)
 	char* q = out.begin();
 	uint32_t counts = 0;
 	
-	if(systemName =="DMX"){
-        memcpy(q,p,input.size());
-	out.set_end(out.begin() + input.size());
-	out.set_counts(1);
-	return &out;}
+	if (processorType == ProcessorType::PASS_THROUGH) {
+		memcpy(q,p,input.size());
+		out.set_end(out.begin() + input.size());
+		out.set_counts(1);
+		return &out;
+	}
 	
 	int bsize = sizeof(block1);
 	if((input.size()-constants::orbit_trailer_size)%bsize!=0){

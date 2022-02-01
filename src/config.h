@@ -6,6 +6,7 @@
 #include "boost/lexical_cast.hpp"
 #include <map>
 #include <stdexcept>
+#include "processor.h"
 
 class config{
 public:
@@ -48,9 +49,6 @@ public:
     std::string v = vmap.at("packets_per_report");
     return boost::lexical_cast<uint32_t>(v.c_str()); 
   } 
-  const std::string& getSystemName() const {
-    return vmap.at("system_name");
-  }
   const std::string& getInputFile() const {
     return vmap.at("input_file");
   }
@@ -66,6 +64,18 @@ public:
     std::string v = vmap.at("pt_cut");
     return boost::lexical_cast<uint32_t>(v.c_str());
   }
+
+  StreamProcessor::ProcessorType getProcessorType() const {
+    const std::string& input = vmap.at("processor_type");
+    if (input == "PASS_THROUGH") {
+      return StreamProcessor::ProcessorType::PASS_THROUGH;
+    }
+    if (input == "GMT") {
+      return StreamProcessor::ProcessorType::GMT;
+    }
+    throw std::invalid_argument("Configuration error: Wrong processor type '" + input + "'");
+  }
+
   const std::string& getOutputFilenamePrefix() const 
   {
     return vmap.at("output_filename_prefix");
