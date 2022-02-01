@@ -8,7 +8,7 @@
 #include <iostream>
 #include <stdio.h>
 
-/* Defines the journal file */
+/* Defines the journal file. Note: Filename prefix is added making the final filename */
 static const std::string journal_file { "index.journal" };
 
 /* Defined where are the files stored before they are moved to the final destination */
@@ -37,33 +37,33 @@ static void create_output_directory(std::string& output_directory)
   LOG(TRACE) << "Created output directory: " << output_directory << "'.";    
 }
 
-OutputStream::OutputStream( const char* output_file_base, ctrl& c, std::string system_name_) : 
+OutputStream::OutputStream( const std::string output_filename_base, const std::string output_filename_prefix, ctrl& c) : 
     tbb::filter(serial_in_order),
-    my_output_file_base(output_file_base),
+    my_output_filename_base(output_filename_base),
+    my_output_filename_prefix(output_filename_prefix),
     totcounts(0),
     current_file_size(0),
     file_count(-1),
     control(c),
     current_file(0),
     current_run_number(0),
-    journal_name(my_output_file_base + "/" + journal_file),
-    system_name(system_name_)
+    journal_name(my_output_filename_base + "/" + output_filename_prefix + '_' + journal_file)
 {
   LOG(TRACE) << "Created output filter at " << static_cast<void*>(this);
 
   // Create the ouput directory
-  std::string output_directory = my_output_file_base + "/" + working_dir;
+  std::string output_directory = my_output_filename_base + "/" + working_dir;
   create_output_directory(output_directory);
 }
 
-static void update_journal(std::string journal_name, uint32_t run_number, std::string system_name, uint32_t index)
+static void update_journal(std::string journal_name, uint32_t run_number, uint32_t index)
 {
   std::string new_journal_name = journal_name + ".new";
 
   // Create a new journal file
   std::ofstream journal (new_journal_name);
   if (journal.is_open()) {
-    journal << run_number << "\n" << system_name << "\n" << index << "\n";
+    journal << run_number << "\n" << index << "\n";
     journal.close();
   } else {
     LOG(ERROR) << "WARNING: Unable to open journal file";
@@ -75,11 +75,11 @@ static void update_journal(std::string journal_name, uint32_t run_number, std::s
   }
 }
 
-static bool read_journal(std::string journal_name, uint32_t& run_number, std::string system_name, uint32_t& index)
+static bool read_journal(std::string journal_name, uint32_t& run_number, uint32_t& index)
 {
     std::ifstream journal (journal_name);
     if (journal.is_open()) {
-      journal >> run_number >> system_name >> index;
+      journal >> run_number >> index;
       journal.close();
       return true;
     } 
@@ -117,10 +117,10 @@ void* OutputStream::operator()( void* item )
  * Create a properly formated file name
  * TODO: Change to C++
  */
-static std::string format_run_file_stem(uint32_t run_number, std::string system_name, int32_t file_count)
+static std::string format_run_file_stem(std::string& filename_prefix, uint32_t run_number, int32_t file_count)
 {
   char run_order_stem[PATH_MAX];
-  snprintf(run_order_stem, sizeof(run_order_stem), "scout_%06d_%s_%06d.dat", run_number, system_name.c_str(), file_count);
+  snprintf(run_order_stem, sizeof(run_order_stem), "%s_%06d_%06d.dat", filename_prefix.c_str(), run_number, file_count);
   return std::string(run_order_stem);
 }
 
@@ -131,9 +131,9 @@ void OutputStream::close_and_move_current_file()
     fclose(current_file);
     current_file = NULL;
 
-    std::string run_file          = format_run_file_stem(current_run_number, system_name, file_count);
-    std::string current_file_name = my_output_file_base + "/" + working_dir + "/" + run_file;
-    std::string target_file_name  = my_output_file_base + "/" + run_file;
+    std::string run_file          = format_run_file_stem(my_output_filename_prefix, current_run_number, file_count);
+    std::string current_file_name = my_output_filename_base + "/" + working_dir + "/" + run_file;
+    std::string target_file_name  = my_output_filename_base + "/" + run_file;
 
     LOG(INFO) << "rename: " << current_file_name << " to " << target_file_name;
     if ( rename(current_file_name.c_str(), target_file_name.c_str()) < 0 ) {
@@ -163,7 +163,7 @@ void OutputStream::open_next_file()
     uint32_t journal_run_number;
     uint32_t index;
 
-    if (read_journal(journal_name, journal_run_number, system_name, index)) {
+    if (read_journal(journal_name, journal_run_number, index)) {
       LOG(INFO) << "We have journal:";
       LOG(INFO) << "  run_number: " << journal_run_number;
       LOG(INFO) << "  index:      " << index;   
@@ -179,11 +179,11 @@ void OutputStream::open_next_file()
   }
 
   // Create the ouput directory
-  std::string output_directory = my_output_file_base + "/" + working_dir;
+  std::string output_directory = my_output_filename_base + "/" + working_dir;
   create_output_directory(output_directory);
 
   // Create a new file
-  std::string current_filename = output_directory + "/" + format_run_file_stem(current_run_number, system_name,file_count);
+  std::string current_filename = output_directory + "/" + format_run_file_stem(my_output_filename_prefix, current_run_number, file_count);
   current_file = fopen( current_filename.c_str(), "w" );
   if (current_file == NULL) {
     std::string err = tools::strerror("ERROR when creating file '" + current_filename + "'");
@@ -192,5 +192,5 @@ void OutputStream::open_next_file()
   }
 
   // Update journal file (with the next index file)
-  update_journal(journal_name, current_run_number, system_name, file_count+1);
+  update_journal(journal_name, current_run_number, file_count+1);
 }

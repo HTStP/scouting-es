@@ -83,10 +83,8 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
     pipeline.add_filter(elastic_processor);
   }
 
-  std::string output_file_base = conf.getOutputFilenameBase();
-
   // Create file-writing stage and add it to the pipeline
-  OutputStream output_stream( output_file_base.c_str(), control, conf.getSystemName());
+  OutputStream output_stream( conf.getOutputFilenameBase(), conf.getOutputFilenamePrefix(), control);
   pipeline.add_filter( output_stream );
 
   // Run the pipeline

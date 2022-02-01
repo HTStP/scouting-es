@@ -66,7 +66,10 @@ public:
     std::string v = vmap.at("pt_cut");
     return boost::lexical_cast<uint32_t>(v.c_str());
   }
-
+  const std::string& getOutputFilenamePrefix() const 
+  {
+    return vmap.at("output_filename_prefix");
+  }
   const std::string& getOutputFilenameBase() const 
   {
     return vmap.at("output_filename_base");
