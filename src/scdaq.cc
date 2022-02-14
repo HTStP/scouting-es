@@ -66,7 +66,7 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
 
   // Create reformatter and add it to the pipeline
   // TODO: Created here so we are not subject of scoping, fix later...
-  StreamProcessor stream_processor(packetBufferSize, conf.getDoZS()); 
+  StreamProcessor stream_processor(packetBufferSize, conf.getDoZS(), conf.getProcessorType());
   if ( conf.getEnableStreamProcessor() ) {
     pipeline.add_filter( stream_processor );
   }
@@ -83,10 +83,8 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
     pipeline.add_filter(elastic_processor);
   }
 
-  std::string output_file_base = conf.getOutputFilenameBase();
-
   // Create file-writing stage and add it to the pipeline
-  OutputStream output_stream( output_file_base.c_str(), control);
+  OutputStream output_stream( conf.getOutputFilenameBase(), conf.getOutputFilenamePrefix(), control);
   pipeline.add_filter( output_stream );
 
   // Run the pipeline

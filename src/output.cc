@@ -1,12 +1,14 @@
 #include <system_error>
 #include <fstream>
-
+#include <string>
 #include "output.h"
 #include "slice.h"
 #include "log.h"
 #include "tools.h"
+#include <iostream>
+#include <stdio.h>
 
-/* Defines the journal file */
+/* Defines the journal file. Note: Filename prefix is added making the final filename */
 static const std::string journal_file { "index.journal" };
 
 /* Defined where are the files stored before they are moved to the final destination */
@@ -19,11 +21,10 @@ static void create_output_directory(std::string& output_directory)
   /* check if path exists and is a directory */
   if (stat(output_directory.c_str(), &sb) == 0) {
       if (S_ISDIR (sb.st_mode)) {
-          // Is already existing
-          LOG(TRACE) << "Output directory is already existing: " << output_directory << "'.";    
+          LOG(TRACE) << "Output directory already exists: " << output_directory << "'.";    
           return;
       }
-      std::string err = "ERROR The output directory path '" + output_directory + "' is existing, but the path is not a directory!";
+      std::string err = "ERROR The output directory path '" + output_directory + "' exists, but the path is not a directory!";
       LOG(ERROR) << err;
       throw std::runtime_error(err);
   }
@@ -36,21 +37,22 @@ static void create_output_directory(std::string& output_directory)
   LOG(TRACE) << "Created output directory: " << output_directory << "'.";    
 }
 
-OutputStream::OutputStream( const char* output_file_base, ctrl& c) : 
+OutputStream::OutputStream( const std::string output_filename_base, const std::string output_filename_prefix, ctrl& c) : 
     tbb::filter(serial_in_order),
-    my_output_file_base(output_file_base),
+    my_output_filename_base(output_filename_base),
+    my_output_filename_prefix(output_filename_prefix),
     totcounts(0),
     current_file_size(0),
     file_count(-1),
     control(c),
     current_file(0),
     current_run_number(0),
-    journal_name(my_output_file_base + "/" + journal_file)
+    journal_name(my_output_filename_base + "/" + output_filename_prefix + '_' + journal_file)
 {
   LOG(TRACE) << "Created output filter at " << static_cast<void*>(this);
 
   // Create the ouput directory
-  std::string output_directory = my_output_file_base + "/" + working_dir;
+  std::string output_directory = my_output_filename_base + "/" + working_dir;
   create_output_directory(output_directory);
 }
 
@@ -112,13 +114,13 @@ void* OutputStream::operator()( void* item )
 }
 
 /*
- * Create a properly formated file name
+ * Create a properly formatted file name
  * TODO: Change to C++
  */
-static std::string format_run_file_stem(uint32_t run_number, int32_t file_count)
+static std::string format_run_file_stem(std::string& filename_prefix, uint32_t run_number, int32_t file_count)
 {
   char run_order_stem[PATH_MAX];
-  snprintf(run_order_stem, sizeof(run_order_stem), "scout_%06d_%06d.dat", run_number, file_count);
+  snprintf(run_order_stem, sizeof(run_order_stem), "%s_%06d_%06d.dat", filename_prefix.c_str(), run_number, file_count);
   return std::string(run_order_stem);
 }
 
@@ -129,9 +131,9 @@ void OutputStream::close_and_move_current_file()
     fclose(current_file);
     current_file = NULL;
 
-    std::string run_file          = format_run_file_stem(current_run_number, file_count);
-    std::string current_file_name = my_output_file_base + "/" + working_dir + "/" + run_file;
-    std::string target_file_name  = my_output_file_base + "/" + run_file;
+    std::string run_file          = format_run_file_stem(my_output_filename_prefix, current_run_number, file_count);
+    std::string current_file_name = my_output_filename_base + "/" + working_dir + "/" + run_file;
+    std::string target_file_name  = my_output_filename_base + "/" + run_file;
 
     LOG(INFO) << "rename: " << current_file_name << " to " << target_file_name;
     if ( rename(current_file_name.c_str(), target_file_name.c_str()) < 0 ) {
@@ -176,12 +178,12 @@ void OutputStream::open_next_file()
     LOG(INFO) << "  using index:      " << file_count;    
   }
 
-  // Create the ouput directory
-  std::string output_directory = my_output_file_base + "/" + working_dir;
+  // Create the output directory
+  std::string output_directory = my_output_filename_base + "/" + working_dir;
   create_output_directory(output_directory);
 
   // Create a new file
-  std::string current_filename = output_directory + "/" + format_run_file_stem(current_run_number, file_count);
+  std::string current_filename = output_directory + "/" + format_run_file_stem(my_output_filename_prefix, current_run_number, file_count);
   current_file = fopen( current_filename.c_str(), "w" );
   if (current_file == NULL) {
     std::string err = tools::strerror("ERROR when creating file '" + current_filename + "'");

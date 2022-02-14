@@ -6,6 +6,7 @@
 #include "boost/lexical_cast.hpp"
 #include <map>
 #include <stdexcept>
+#include "processor.h"
 
 class config{
 public:
@@ -64,6 +65,21 @@ public:
     return boost::lexical_cast<uint32_t>(v.c_str());
   }
 
+  StreamProcessor::ProcessorType getProcessorType() const {
+    const std::string& input = vmap.at("processor_type");
+    if (input == "PASS_THROUGH") {
+      return StreamProcessor::ProcessorType::PASS_THROUGH;
+    }
+    if (input == "GMT") {
+      return StreamProcessor::ProcessorType::GMT;
+    }
+    throw std::invalid_argument("Configuration error: Wrong processor type '" + input + "'");
+  }
+
+  const std::string& getOutputFilenamePrefix() const 
+  {
+    return vmap.at("output_filename_prefix");
+  }
   const std::string& getOutputFilenameBase() const 
   {
     return vmap.at("output_filename_base");
@@ -78,14 +94,6 @@ public:
 
   uint32_t getNumThreads() const {
     std::string v = vmap.at("threads");
-    return boost::lexical_cast<uint32_t>(v.c_str());
-  }
-  uint32_t getNumInputBuffers() const {
-    std::string v = vmap.at("input_buffers");
-    return boost::lexical_cast<uint32_t>(v.c_str());
-  }
-  uint32_t getBlocksPerInputBuffer() const {
-    std::string v = vmap.at("blocks_buffer");
     return boost::lexical_cast<uint32_t>(v.c_str());
   }
   short getPortNumber() const {
