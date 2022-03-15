@@ -169,7 +169,7 @@ int wz_reset_board()
     int bytes_read;
 
     // Fill the server address
-    inet_aton("10.176.60.136", &(saddr_in.sin_addr));
+    inet_aton("127.0.0.1", &(saddr_in.sin_addr));
     saddr_in.sin_family = AF_INET;
     saddr_in.sin_port = htons(12345);
 
