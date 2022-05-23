@@ -13,6 +13,18 @@ struct block1{
   uint32_t mu2s[8];
 };
 
+struct bx_map_frame{
+uint32_t bx_map_l[8];
+};
+
+struct orbit_trailer{
+uint32_t beefdead[8];
+uint32_t bx_map[14*8];
+uint32_t trailer1[8];
+uint32_t trailer2[8];
+};
+
+
 struct muon{
   uint32_t f; //first word
   uint32_t s; //second word
@@ -126,8 +138,9 @@ struct gmt_scales{
 
 struct constants{
   static constexpr uint32_t deadbeef           = 0xdeadbeef;
+  static constexpr uint32_t beefdead           = 0xbeefdead;
   static constexpr uint32_t intermediate_marker= 0x0000000f;
-  static constexpr uint32_t orbit_trailer_size = 32;
+  static constexpr uint32_t orbit_trailer_size = 544;
   static constexpr uint32_t intermediate       = 0x00000001;
   static constexpr uint32_t final              = 0x00000001;
 };
