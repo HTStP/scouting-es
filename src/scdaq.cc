@@ -105,12 +105,16 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
 int main( int argc, char* argv[] ) {
   (void)(argc);
   (void)(argv);
-  LOG(DEBUG) << "here 0";
+  if(argc<2){
+    LOG(ERROR) << "missing argument [conffile] in scdaq invocation";
+    exit(-1);
+  }
+  LOG(DEBUG) << "scdaq started with argument" << argv[1];
 
   try {
-    config conf("scdaq.conf");
+    config conf(argv[1]);
     conf.print();
-    LOG(DEBUG) << "here 1";
+    LOG(DEBUG) << "configuration loaded";
     ctrl control;
     //    tbb::tick_count mainStartTime = tbb::tick_count::now();
 
