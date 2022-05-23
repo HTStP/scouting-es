@@ -1,0 +1,15 @@
+[Unit]
+Description=Server that can reset the scouting board via the Xilinx VIO on request
+
+[Service]
+Type=simple
+PIDFile=/var/log/scdaq/scoutboard_reset_server.pid
+ExecStart=/opt/scdaq/scripts/vivado/reset_server.sh
+User=root
+Group=wheel
+WorkingDirectory=/opt/scdaq/scripts/vivado
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
