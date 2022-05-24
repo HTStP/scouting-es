@@ -1,0 +1,15 @@
+[Unit]
+Description=Wrapper script to run scdaq
+
+[Service]
+Type=simple
+PIDFile=/var/log/scdaq/pid
+ExecStart=/opt/scdaq/scripts/run.sh
+User=scouter
+Group=scouter
+WorkingDirectory=/opt/scdaq/scripts
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
