@@ -20,18 +20,16 @@ StreamProcessor::StreamProcessor(size_t max_size_, bool doZS_, ProcessorType pro
 }  
 
 
-std::vector<uint32_t> bit_check(uint32_t word, uint32_t offset)
+void bit_check(std::vector<unsigned int>* bx_vect, uint32_t word, uint32_t offset)
 {
-	std::vector<uint32_t> vect;
 	for (uint32_t i = 0; i<32; i++)
 	{
 		if (word & 1){
-			vect.push_back(i + offset);
+			bx_vect->push_back(i + offset);
 		}
 		word >>= 1;
 	}
-
-	return vect;
+	return;
 }
 
 StreamProcessor::~StreamProcessor(){
@@ -61,8 +59,7 @@ std::vector<unsigned int> StreamProcessor::CountBX(Slice& input){
 			orbit_trailer *ot = (orbit_trailer*)(p);
 			for (unsigned int k = 0; k < (14*8); k++){ // 14*8 = 14 frames, 8 links of orbit trailer containing BX hitmap
 				//bxcount += __builtin_popcount(ot->bx_map[k]);
-				std::vector<unsigned int> bx_vect_t = bit_check(ot->bx_map[k], k*32);
-				bx_vect.insert(bx_vect.end(), bx_vect_t.begin(), bx_vect_t.end());
+				bit_check(&bx_vect, ot->bx_map[k], k*32);
 			}
 			return bx_vect;
 		}
