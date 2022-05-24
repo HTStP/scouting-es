@@ -72,12 +72,12 @@ std::vector<unsigned int> StreamProcessor::CountBX(Slice& input){
 }
 
 // Goes through orbit worth of data and fills the output memory with the muons corresponding to the non-empty bunchcrossings, as marked in bx_vect
-uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsigned int>* bx_vect){
+uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsigned int>& bx_vect){
 	char* p = input.begin() + 32; // +32 to account for orbit header
 	char* q = out.begin(); // +32 to account for orbit header
 	uint32_t relbx = 0;
 	uint32_t counts = 0;
-	while(relbx < bx_vect->size()){ //total number of non-empty BXs in orbit is given by bx_vect.size()
+	while(relbx < bx_vect.size()){ //total number of non-empty BXs in orbit is given by bx_vect.size()
 		block1 *bl = (block1*)(p);
 		if(bl->orbit[0]==constants::beefdead){break;} // orbit trailer has been reached, end of orbit data
 		int mAcount = 0;
@@ -88,12 +88,12 @@ uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsign
 		bool BblocksOn[8];
 		for(unsigned int i = 0; i < 8; i++){
 			uint32_t bxA = (bl->bx[i] >> shifts::bx) & masks::bx;
-			uint32_t bx = bx_vect->at(relbx);
+			uint32_t bx = bx_vect[relbx];
 			//std::cout << "bxA = " << std::dec << bxA << ", bx = "<< bx << std::endl;
 			uint32_t interm = (bl->bx[i] >> shifts::interm) & masks::interm;
 			uint32_t orbit = bl->orbit[i];
 
-			bxmatch += (bx==bx_vect->at(relbx))<<i;
+			bxmatch += (bx==bx_vect[relbx])<<i;
 			orbitmatch += (orbit==bl->orbit[0])<<i; 
 			uint32_t pt = (bl->mu1f[i] >> shifts::pt) & masks::pt;
 			uint32_t etae = (bl->mu1f[i] >> shifts::etaext) & masks::eta;
@@ -121,14 +121,14 @@ uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsign
 		counts += mAcount;
 		counts += mBcount;
 		memcpy(q,(char*)&header,4); q+=4;
-		memcpy(q,(char*)&bx_vect->at(relbx),4); q+=4;
+		memcpy(q,(char*)&bx_vect[relbx],4); q+=4;
 		memcpy(q,(char*)&bl->orbit[0],4); q+=4;
 		for(unsigned int i = 0; i < 8; i++){
 			if(AblocksOn[i]){
 				memcpy(q,(char*)&bl->mu1f[i],4); q+=4;
 				memcpy(q,(char*)&bl->mu1s[i],4); q+=4;
 				// next creating mu.extra which is a copy of bl->bx with a change to the first bit		
-				memcpy(q,(char*)&(bx_vect->at(relbx) &= ~0x1),4); q+=4; //set bit 0 to 0 for first muon
+				memcpy(q,(char*)&(bx_vect[relbx] &= ~0x1),4); q+=4; //set bit 0 to 0 for first muon
 			}
 		}
 
@@ -137,7 +137,7 @@ uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsign
 				memcpy(q,(char*)&bl->mu2f[i],4); q+=4;
 				memcpy(q,(char*)&bl->mu2s[i],4); q+=4;
 				// next creating mu.extra which is a copy of bl->bx with a change to the first bit		
-				memcpy(q,(char*)&(bx_vect->at(relbx) |= 0x1),4); q+=4; //set bit 0 to 1 for second muon
+				memcpy(q,(char*)&(bx_vect[relbx] |= 0x1),4); q+=4; //set bit 0 to 1 for second muon
 			}
 		}
 
@@ -168,7 +168,7 @@ Slice* StreamProcessor::process(Slice& input, Slice& out)
 
 		std::vector<unsigned int> bx_vect = CountBX(input);
 		std::sort(bx_vect.begin(), bx_vect.end());
-		uint32_t orbitCount = FillOrbit(input, out, &bx_vect);
+		uint32_t orbitCount = FillOrbit(input, out, bx_vect);
 		p+= 32 + bx_vect.size()*sizeof(block1) + constants::orbit_trailer_size; // 32 for orbit header, + nBXs + orbit trailer
 		q+= orbitCount*12 + 12*bx_vect.size(); // 12 bytes for each muon/count then 12 bytes for each bx header
 		counts += orbitCount;
