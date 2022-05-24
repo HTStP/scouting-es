@@ -19,7 +19,7 @@ StreamProcessor::StreamProcessor(size_t max_size_, bool doZS_, ProcessorType pro
 	myfile.open ("example.txt");
 }  
 
-
+// Loops over each word in the orbit trailer BX map and fills a vector with the non-empty BX values
 void bit_check(std::vector<unsigned int>* bx_vect, uint32_t word, uint32_t offset)
 {
 	for (uint32_t i = 0; i<32; i++)
@@ -37,6 +37,7 @@ StreamProcessor::~StreamProcessor(){
 	myfile.close();
 }
 
+// checks that the packet size is an integer multiple of the BX block size, minus the header/trailers
 bool StreamProcessor::CheckFrameMultBlock(uint32_t inputSize){
 
 	int bsize = sizeof(block1);
@@ -49,6 +50,7 @@ bool StreamProcessor::CheckFrameMultBlock(uint32_t inputSize){
 	return true;
 }
 
+// Looks for orbit trailer then counts the non-empty bunch crossings and fills a vector with their values
 std::vector<unsigned int> StreamProcessor::CountBX(Slice& input){
 
 	char* p = input.begin() + 32; // +32 to account for orbit header
@@ -69,14 +71,15 @@ std::vector<unsigned int> StreamProcessor::CountBX(Slice& input){
 
 }
 
+// Goes through orbit worth of data and fills the output memory with the muons corresponding to the non-empty bunchcrossings, as marked in bx_vect
 uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsigned int>* bx_vect){
 	char* p = input.begin() + 32; // +32 to account for orbit header
 	char* q = out.begin(); // +32 to account for orbit header
 	uint32_t relbx = 0;
 	uint32_t counts = 0;
-	while(relbx < bx_vect->size()){
+	while(relbx < bx_vect->size()){ //total number of non-empty BXs in orbit is given by bx_vect.size()
 		block1 *bl = (block1*)(p);
-		if(bl->orbit[0]==constants::beefdead){break;} 
+		if(bl->orbit[0]==constants::beefdead){break;} // orbit trailer has been reached, end of orbit data
 		int mAcount = 0;
 		int mBcount = 0;
 		uint32_t bxmatch=0;
