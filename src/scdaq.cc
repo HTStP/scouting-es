@@ -66,7 +66,7 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
 
   // Create reformatter and add it to the pipeline
   // TODO: Created here so we are not subject of scoping, fix later...
-  StreamProcessor stream_processor(packetBufferSize, conf.getDoZS(), conf.getProcessorType());
+  StreamProcessor stream_processor(packetBufferSize, conf.getDoZS(), conf.getProcessorType(), conf.getNOrbitsPerDMAPacket());
   if ( conf.getEnableStreamProcessor() ) {
     pipeline.add_filter( stream_processor );
   }
@@ -124,7 +124,7 @@ int main( int argc, char* argv[] ) {
     control.max_file_size = conf.getOutputMaxFileSize();//in Bytes
     control.packets_per_report = conf.getPacketsPerReport();
     control.output_force_write = conf.getOutputForceWrite();
-
+    control.n_orbits_per_dma_packet = conf.getNOrbitsPerDMAPacket();
     // Firmware needs at least 1MB buffer for DMA
     if (conf.getDmaPacketBufferSize() < 1024*1024) {
       LOG(ERROR) << "dma_packet_buffer_size must be at least 1048576 bytes (1MB), but " << conf.getDmaPacketBufferSize() << " bytes was given. Check the configuration file.";

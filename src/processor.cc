@@ -7,12 +7,13 @@
 #include <vector>
 #include <algorithm>
 
-StreamProcessor::StreamProcessor(size_t max_size_, bool doZS_, ProcessorType processorType_) :
+StreamProcessor::StreamProcessor(size_t max_size_, bool doZS_, ProcessorType processorType_, uint32_t nOrbitsPerDMAPacket_) :
 	tbb::filter(parallel),
 	max_size(max_size_),
 	nbPackets(0),
 	doZS(doZS_),
-	processorType(processorType_)
+	processorType(processorType_),
+	nOrbitsPerDMAPacket(nOrbitsPerDMAPacket_)
 { 
 	LOG(TRACE) << "Created transform filter at " << static_cast<void*>(this);
 	myfile.open ("example.txt");
@@ -41,7 +42,7 @@ StreamProcessor::~StreamProcessor(){
 bool StreamProcessor::CheckFrameMultBlock(uint32_t inputSize){
 
 	int bsize = sizeof(block1);
-	if((inputSize-20*constants::orbit_trailer_size - 32*20 -32)%bsize!=0){
+	if((inputSize-nOrbitsPerDMAPacket*constants::orbit_trailer_size - 32*nOrbitsPerDMAPacket -32)%bsize!=0){
 		LOG(WARNING)
 			<< "Frame size not a multiple of block size. Will be skipped. Frame size = "
 			<< inputSize << ", block size = " << bsize;
@@ -76,7 +77,6 @@ uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsign
 	char* q = out.begin(); // +32 to account for orbit header
 	uint32_t relbx = 0;
 	uint32_t counts = 0;
-	std::cout << "here1 "<< std::endl;
 	while(relbx < bx_vect->size()){
 		block1 *bl = (block1*)(p);
 		if(bl->orbit[0]==constants::beefdead){break;} 
@@ -181,7 +181,6 @@ Slice* StreamProcessor::process(Slice& input, Slice& out)
 			if( *dma_trailer_word == constants::deadbeef){
 				endofpacket = true;
 				out.set_end(q);
-				std::cout << "counts " << counts << std::endl;
 				out.set_counts(counts);
 				return &out;
 			}

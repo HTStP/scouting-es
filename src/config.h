@@ -91,6 +91,10 @@ public:
   bool getOutputForceWrite() const {
     return (true ? vmap.at("output_force_write") == "yes" : false);
   }
+  uint32_t getNOrbitsPerDMAPacket() const {
+    std::string v = vmap.at("NOrbitsPerDMAPacket");
+    return boost::lexical_cast<uint32_t>(v.c_str());
+  }
 
   uint32_t getNumThreads() const {
     std::string v = vmap.at("threads");
