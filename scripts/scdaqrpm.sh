@@ -1,19 +1,19 @@
 #!/bin/bash -e
 BUILD_ARCH=x86_64
-SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-RHEL_MAJOR=`cat /etc/redhat-release | cut -d' ' -f4 | cut -d'.' -f1`
+SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RHEL_MAJOR=$(cat /etc/redhat-release | cut -d' ' -f4 | cut -d'.' -f1)
 
 echo "Checking if necessary build packages are installed..."
 if [ "$RHEL_MAJOR" = "7" ]; then
   if ! rpm -q rpm-build; then
-    echo "\nPlease install missing packages.";
-    exit 1;
+    echo "\nPlease install missing packages."
+    exit 1
   fi
 else
   if ! rpm -q gcc redhat-rpm-config rpm-build zlib-devel; then
-    echo "";
-    echo "Please install missing packages.";
-    exit 1;
+    echo ""
+    echo "Please install missing packages."
+    exit 1
   fi
 fi
 echo "..Build dependencies OK"
@@ -27,63 +27,58 @@ ASK="1"
 
 if [ -n "$1" ]; then
   if [ "$1" = "--batch" ]; then
-  ASK="0"
+    ASK="0"
   fi
 
   if [ "$1" = "-b" ]; then
-  ASK="0"
+    ASK="0"
   fi
 
   if [ $ASK = "0" ]; then #check $2 if found
     if [ -n "$2" ]; then
-            PARAMCACHE=${2##*/}
+      PARAMCACHE=${2##*/}
     fi
   fi
-  if [ $ASK = "1" ]; then #take $1 
+  if [ $ASK = "1" ]; then #take $1
     PARAMCACHE=${1##*/}
   fi
 fi
 
 echo "Using cache file $PARAMCACHE"
 
-if [ -f $SCRIPTDIR/$PARAMCACHE ];
-then
-  readarray lines < $SCRIPTDIR/$PARAMCACHE
-  for (( i=0; i < ${NLINES}; i++ ))
-  do
-    lines[$i]=`echo -n ${lines[$i]} | tr -d "\n"`
+if [ -f $SCRIPTDIR/$PARAMCACHE ]; then
+  readarray lines <$SCRIPTDIR/$PARAMCACHE
+  for ((i = 0; i < ${NLINES}; i++)); do
+    lines[$i]=$(echo -n ${lines[$i]} | tr -d "\n")
   done
 else
-  for (( i=0; i < ${NLINES}; i++ ))
-  do
+  for ((i = 0; i < ${NLINES}; i++)); do
     lines[$i]=""
   done
 fi
 
 if [ $ASK = "1" ]; then
 
-echo "This is the scdaq build script. It will now ask for several configuration parameters."
-echo "Use -b cmdline parameter to build from cache without waiting for input"
-echo "   ... press any key to continue ..."
-read readin
+  echo "This is the scdaq build script. It will now ask for several configuration parameters."
+  echo "Use -b cmdline parameter to build from cache without waiting for input"
+  echo "   ... press any key to continue ..."
+  read readin
 
-echo "Dummy parameter, this will be used to modify/obtain build parameters from cache (press enter for \"${lines[0]}\"):"
-readin=""
-read readin
-if [ ${#readin} != "0" ]; then
-lines[0]=$readin
-fi
+  echo "Dummy parameter, this will be used to modify/obtain build parameters from cache (press enter for \"${lines[0]}\"):"
+  readin=""
+  read readin
+  if [ ${#readin} != "0" ]; then
+    lines[0]=$readin
+  fi
 
 fi #ask
 
 #update cache file
-if [ -f $SCRIPTDIR/$PARAMCACHE ];
-then
-    rm -rf -f $SCRIPTDIR/$PARAMCACHE
+if [ -f $SCRIPTDIR/$PARAMCACHE ]; then
+  rm -rf -f $SCRIPTDIR/$PARAMCACHE
 fi
-for (( i=0; i < ${NLINES}; i++ ))
-do
-  echo ${lines[$i]} >> $SCRIPTDIR/$PARAMCACHE
+for ((i = 0; i < ${NLINES}; i++)); do
+  echo ${lines[$i]} >>$SCRIPTDIR/$PARAMCACHE
 done
 
 PACKAGENAME="scdaq"
@@ -98,17 +93,16 @@ BASEDIR=$PWD
 echo "removing old build area"
 rm -rf /tmp/$PACKAGENAME-build-tmp
 echo "creating new build area"
-mkdir  /tmp/$PACKAGENAME-build-tmp
-cd     /tmp/$PACKAGENAME-build-tmp
+mkdir /tmp/$PACKAGENAME-build-tmp
+cd /tmp/$PACKAGENAME-build-tmp
 #mkdir BUILD
 #mkdir RPMS
 TOPDIR=$PWD
 echo "working in $PWD"
 #ls
 
-
 # we are done here, write the specs and make the fu***** rpm
-cat > scoutdaq.spec << EOF
+cat >scoutdaq.spec <<EOF
 Name: $PACKAGENAME$pkgsuffix
 Version: 0.1.0
 Release: 0%{?dist}
@@ -195,7 +189,7 @@ systemctl daemon-reload
 %dir %attr(777, -, -) /var/log/scdaq/pid
 %defattr(-, root, root, -)
 /opt/scdaq/
-%config /etc/scdaq/scdaq.conf
+%config(noreplace) /etc/scdaq/scdaq.conf
 #/etc/logrotate.d/scdaq
 %attr( 644 ,root, root) /usr/lib/systemd/system/runSCdaq.service
 %attr( 644 ,root, root) /usr/lib/systemd/system/scoutboardResetServer.service
@@ -212,5 +206,5 @@ if [ \$1 == 0 ]; then
 fi
 EOF
 mkdir -p RPMBUILD/{RPMS/{noarch},SPECS,BUILD,SOURCES,SRPMS}
-rpmbuild --define "_topdir `pwd`/RPMBUILD" -bb scoutdaq.spec
+rpmbuild --define "_topdir $(pwd)/RPMBUILD" -bb scoutdaq.spec
 #rm -rf patch-cmssw-tmp
