@@ -3,126 +3,115 @@
 #include "slice.h"
 #include "log.h"
 #include <iomanip>
+#include <cmath>
 #include <vector>
+#include <algorithm>
 
-StreamProcessor::StreamProcessor(size_t max_size_, bool doZS_, std::string systemName_, config::InputType inputType_) : 
+StreamProcessor::StreamProcessor(size_t max_size_, bool doZS_, ProcessorType processorType_, uint32_t nOrbitsPerDMAPacket_) :
 	tbb::filter(parallel),
 	max_size(max_size_),
 	nbPackets(0),
 	doZS(doZS_),
-	systemName(systemName_),
-	inputType(inputType_)
+	processorType(processorType_),
+	nOrbitsPerDMAPacket(nOrbitsPerDMAPacket_)
 { 
 	LOG(TRACE) << "Created transform filter at " << static_cast<void*>(this);
 	myfile.open ("example.txt");
 }  
 
+// Loops over each word in the orbit trailer BX map and fills a vector with the non-empty BX values
+void bit_check(std::vector<unsigned int>* bx_vect, uint32_t word, uint32_t offset)
+{
+	for (uint32_t i = 0; i<32; i++)
+	{
+		if (word & 1){
+			bx_vect->push_back(i + offset);
+		}
+		word >>= 1;
+	}
+	return;
+}
 
 StreamProcessor::~StreamProcessor(){
 	//  fprintf(stderr,"Wrote %d muons \n",totcount);
 	myfile.close();
 }
 
-Slice* StreamProcessor::process(Slice& input, Slice& out)
-{
-	nbPackets++;
-	char* p = input.begin();
-	char* q = out.begin();
-	uint32_t counts = 0;
+// checks that the packet size is an integer multiple of the BX block size, minus the header/trailers
+bool StreamProcessor::CheckFrameMultBlock(uint32_t inputSize){
 
-	unsigned int nchannels = 8;
-
-	if(systemName =="DMX"){
-		memcpy(q,p,input.size());
-		out.set_end(out.begin() + input.size());
-		out.set_counts(1);
-		return &out;}
 	int bsize = sizeof(block1);
-	if((input.size()-constants::orbit_trailer_size)%bsize!=0){
+	if((inputSize-nOrbitsPerDMAPacket*constants::orbit_trailer_size - 32*nOrbitsPerDMAPacket -32)%bsize!=0){
 		LOG(WARNING)
-			<< "Frame size not a multiple of block size. Will be skipped. Size="
-			<< input.size() << " - block size=" << bsize;
-		return &out;
+			<< "Frame size not a multiple of block size. Will be skipped. Frame size = "
+			<< inputSize << ", block size = " << bsize;
+		return false;
 	}
-	bool first = true;
-	bool skip = false;
-	while(p!=input.end() && (skip == false)){
-		unsigned int offset = 0;
-
-		//currently needed to align to orbit number frame when using MICRONDMA
-		if(inputType == config::InputType::MICRONDMA){
-
-
-				first = false;
-				bool allEqual = false;
-				while((allEqual == false) && (skip == false)){
-					if(offset > 5){skip = true; break;}
-					std::vector<uint32_t> words;
-					for (unsigned int j = 0; j < 8; j++){
-
-						uint32_t *word  = (uint32_t*)(p + 4*j + offset*32);
-
-						words.push_back(*word);	
-					}
-					if (( words.size() == 8) && (std::equal(words.begin() + 1, words.end(), words.begin())))
-					{
-						if((words.at(0) != 0) && (words.at(0) != 65537)){
-							allEqual = true;
-						}
-					}
-					if(allEqual==false){offset++;}
-				}
+	return true;
 }
 
-		block1 *bl = (block1*)(p + offset*32);
-		bool brill_word = false;
-		bool endoforbit = false;
+// Looks for orbit trailer then counts the non-empty bunch crossings and fills a vector with their values
+std::vector<unsigned int> StreamProcessor::CountBX(Slice& input){
+
+	char* p = input.begin() + 32; // +32 to account for orbit header
+	std::vector<unsigned int> bx_vect;
+	while( p != input.end()){
+		block1 *bl = (block1*)(p);
+		if(bl->orbit[0]==constants::beefdead){ // found orbit trailer
+			orbit_trailer *ot = (orbit_trailer*)(p);
+			for (unsigned int k = 0; k < (14*8); k++){ // 14*8 = 14 frames, 8 links of orbit trailer containing BX hitmap
+				//bxcount += __builtin_popcount(ot->bx_map[k]);
+				bit_check(&bx_vect, ot->bx_map[k], k*32);
+			}
+			return bx_vect;
+		}
+
+		p+=sizeof(block1);
+	}
+
+}
+
+// Goes through orbit worth of data and fills the output memory with the muons corresponding to the non-empty bunchcrossings, as marked in bx_vect
+uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsigned int>& bx_vect){
+	char* p = input.begin() + 32; // +32 to account for orbit header
+	char* q = out.begin(); // +32 to account for orbit header
+	uint32_t relbx = 0;
+	uint32_t counts = 0;
+	while(relbx < bx_vect.size()){ //total number of non-empty BXs in orbit is given by bx_vect.size()
+		block1 *bl = (block1*)(p);
+		if(bl->orbit[0]==constants::beefdead){break;} // orbit trailer has been reached, end of orbit data
 		int mAcount = 0;
 		int mBcount = 0;
 		uint32_t bxmatch=0;
 		uint32_t orbitmatch=0;
-		uint32_t brill_marker = 0xFF;
-		bool AblocksOn[nchannels];
-		bool BblocksOn[nchannels];
-		for(unsigned int i = 0; i < nchannels; i++){
-			if(bl->orbit[i]==constants::deadbeef){
-				p += constants::orbit_trailer_size;
-				endoforbit = true;
-				break;
-			}
-			bool brill_enabled = 0;
-
-			if(( brill_enabled) && ((bl->orbit[i] == 0xFF) ||( bl->bx[i] == 0xFF) ||( bl->mu1f[i] == 0xFF) || 
-						(bl->mu1s[i] == 0xFF) ||( bl->mu2f[i] == 0xFF) ||( bl->mu2s[i] == 0xFF))){
-				brill_word = true;
-			}
-
-			uint32_t bx = (bl->bx[i] >> shifts::bx) & masks::bx;
+		bool AblocksOn[8];
+		bool BblocksOn[8];
+		for(unsigned int i = 0; i < 8; i++){
+			uint32_t bxA = (bl->bx[i] >> shifts::bx) & masks::bx;
+			uint32_t bx = bx_vect[relbx];
+			//std::cout << "bxA = " << std::dec << bxA << ", bx = "<< bx << std::endl;
 			uint32_t interm = (bl->bx[i] >> shifts::interm) & masks::interm;
 			uint32_t orbit = bl->orbit[i];
-			bxmatch += (bx==((bl->bx[0] >> shifts::bx) & masks::bx))<<i;
+
+			bxmatch += (bx==bx_vect[relbx])<<i;
 			orbitmatch += (orbit==bl->orbit[0])<<i; 
 			uint32_t pt = (bl->mu1f[i] >> shifts::pt) & masks::pt;
 			uint32_t etae = (bl->mu1f[i] >> shifts::etaext) & masks::eta;
-			//		std::cout << "bx = " <<((bl->bx[i] >> shifts::bx) & masks::bx) << ", orbit = " << bl->orbit[i] <<  std::endl;
-			//	std::cout << "bx = " << bx << "," << "orbit = " << orbit << "," << interm << "," << etae << std::endl;
 
-			AblocksOn[i]=((pt>0) || (doZS==0) || (brill_word));
-			if((pt>0) || (doZS==0) || (brill_word)){
+			AblocksOn[i]=((pt>0) || (doZS==0));
+			if((pt>0) || (doZS==0)){
 				mAcount++;
-				//std::cout << "mAcount +" << std::endl;
 			}
 			pt = (bl->mu2f[i] >> shifts::pt) & masks::pt;
-			BblocksOn[i]=((pt>0) || (doZS==0) ||( brill_word));
-			if((pt>0) || (doZS==0) || (brill_word)){
+			BblocksOn[i]=((pt>0) || (doZS==0));
+			if((pt>0) || (doZS==0)){
 				mBcount++;
-				//std::cout << "mBcount +" << std::endl;
 			}
+
 		}
-		if(endoforbit) continue;
 		uint32_t bxcount = std::max(mAcount,mBcount);
-		if((bxcount == 0 )&& (inputType != config::InputType::MICRONDMA)) {
-			p+=bsize;
+		if(bxcount == 0) {
+			p+=sizeof(block1);
 			LOG(WARNING) << '#' << nbPackets << ": Detected a bx with zero muons, this should not happen. Packet is skipped."; 
 			continue;
 		}
@@ -132,50 +121,77 @@ Slice* StreamProcessor::process(Slice& input, Slice& out)
 		counts += mAcount;
 		counts += mBcount;
 		memcpy(q,(char*)&header,4); q+=4;
-		memcpy(q,(char*)&bl->bx[0],4); q+=4;
+		memcpy(q,(char*)&bx_vect[relbx],4); q+=4;
 		memcpy(q,(char*)&bl->orbit[0],4); q+=4;
-		for(unsigned int i = 0; i < nchannels; i++){
+		for(unsigned int i = 0; i < 8; i++){
 			if(AblocksOn[i]){
 				memcpy(q,(char*)&bl->mu1f[i],4); q+=4;
 				memcpy(q,(char*)&bl->mu1s[i],4); q+=4;
-				//memcpy(q,(char*)&(bl->bx[i] &= ~0x1),4); q+=4; //set bit 0 to 0 for first muon
 				// next creating mu.extra which is a copy of bl->bx with a change to the first bit		
-				if(brill_word == true){
-					memcpy(q,&brill_marker,4); q+=4;
-				}	else {
-					memcpy(q,(char*)&(bl->bx[i] &= ~0x1),4); q+=4; //set bit 0 to 0 for first muon
-				}
+				memcpy(q,(char*)&(bx_vect[relbx] &= ~0x1),4); q+=4; //set bit 0 to 0 for first muon
 			}
 		}
 
-		for(unsigned int i = 0; i < nchannels; i++){
+		for(unsigned int i = 0; i < 8; i++){
 			if(BblocksOn[i]){
 				memcpy(q,(char*)&bl->mu2f[i],4); q+=4;
 				memcpy(q,(char*)&bl->mu2s[i],4); q+=4;
-				//memcpy(q,(char*)&(bl->bx[i] |= 0x1),4); q+=4; //set bit 0 to 1 for second muon
 				// next creating mu.extra which is a copy of bl->bx with a change to the first bit		
-				if(brill_word == true){
-					memcpy(q,&brill_marker,4); q+=4; 
-				}	else{
-					memcpy(q,(char*)&(bl->bx[i] |= 0x1),4); q+=4; //set bit 0 to 1 for second muon
-				}							
+				memcpy(q,(char*)&(bx_vect[relbx] |= 0x1),4); q+=4; //set bit 0 to 1 for second muon
 			}
 		}
 
-		p+= (sizeof(block1) + offset*32);
+		p+=sizeof(block1);
 
+		relbx++;
 	}
-
-
-	out.set_end(q);
-	out.set_counts(counts);
-	return &out;  
+	return counts;
 }
 
+Slice* StreamProcessor::process(Slice& input, Slice& out)
+{
+	nbPackets++;
+	char* p = input.begin(); 
+	char* q = out.begin();
+	uint32_t counts = 0;
+	bool endofpacket = false;
+
+	if (processorType == ProcessorType::PASS_THROUGH) {
+		memcpy(q,p,input.size());
+		out.set_end(out.begin() + input.size());
+		out.set_counts(1);
+		return &out;
+	}
+
+	if (!CheckFrameMultBlock(input.size())){ return &out; } 
+	while (endofpacket == false){
+
+		std::vector<unsigned int> bx_vect = CountBX(input);
+		std::sort(bx_vect.begin(), bx_vect.end());
+		uint32_t orbitCount = FillOrbit(input, out, bx_vect);
+		p+= 32 + bx_vect.size()*sizeof(block1) + constants::orbit_trailer_size; // 32 for orbit header, + nBXs + orbit trailer
+		q+= orbitCount*12 + 12*bx_vect.size(); // 12 bytes for each muon/count then 12 bytes for each bx header
+		counts += orbitCount;
+		bx_vect.clear();
+
+
+		if(p < input.end()){
+
+			uint32_t *dma_trailer_word = (uint32_t*)(p);
+			if( *dma_trailer_word == constants::deadbeef){
+				endofpacket = true;
+				out.set_end(q);
+				out.set_counts(counts);
+				return &out;
+			}
+		}
+	}
+}
 void* StreamProcessor::operator()( void* item ){
 	Slice& input = *static_cast<Slice*>(item);
-	Slice& out = *Slice::allocate( 3*max_size);
+	Slice& out = *Slice::allocate( 2*max_size);
 	process(input, out);
 	Slice::giveAllocated(&input);
+
 	return &out;
 }

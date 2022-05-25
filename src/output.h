@@ -13,7 +13,7 @@ class OutputStream: public tbb::filter {
 
 
 public:
-  OutputStream( const char* output_file_base, ctrl& c );
+  OutputStream( const std::string output_filename_base,  const std::string output_filename_prefix, ctrl& c );
   void* operator()( void* item ) /*override*/;
 
 private:
@@ -21,7 +21,8 @@ private:
   void close_and_move_current_file();
 
 private:
-  std::string my_output_file_base;
+  std::string my_output_filename_base;
+  std::string my_output_filename_prefix;
   uint32_t totcounts;
   uint64_t current_file_size;
   int32_t file_count;

@@ -5,27 +5,32 @@
     
 #include <iostream>
 #include <fstream>
-#include "config.h"
-//reformatter
+#include <vector>
 
 class Slice;
 
 class StreamProcessor: public tbb::filter {
 public:
-  StreamProcessor(size_t, bool, std::string, config::InputType);
+  enum class ProcessorType { PASS_THROUGH, GMT };
+
+public:
+  StreamProcessor(size_t max_size_, bool doZS_, ProcessorType processorType_, uint32_t nOrbitsPerDMAPacket_);
   void* operator()( void* item )/*override*/;
   ~StreamProcessor();
 
 private:
   Slice* process(Slice& input, Slice& out);
-  
+  bool CheckFrameMultBlock(uint32_t inputSize);  
+  std::vector<unsigned int> CountBX(Slice& input);
+  uint32_t FillOrbit(Slice& input, Slice& out, std::vector<unsigned int>& bx_vect);
+ 
   std::ofstream myfile;
 private:
   size_t max_size;
   uint64_t nbPackets;
   bool doZS;
-  std::string systemName;
-  config::InputType inputType;
+  uint32_t nOrbitsPerDMAPacket;
+  ProcessorType processorType;
 };
 
 #endif

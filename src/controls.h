@@ -12,5 +12,6 @@ struct ctrl {
   bool output_force_write;
   uint64_t max_file_size;
   int packets_per_report;
+  int n_orbits_per_dma_packet;
 };
 #endif 

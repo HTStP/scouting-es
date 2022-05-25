@@ -73,7 +73,7 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
 
   // Create reformatter and add it to the pipeline
   // TODO: Created here so we are not subject of scoping, fix later...
-  StreamProcessor stream_processor(packetBufferSize, conf.getDoZS(), conf.getSystemName(), conf.getInput()); 
+  StreamProcessor stream_processor(packetBufferSize, conf.getDoZS(), conf.getProcessorType(), conf.getNOrbitsPerDMAPacket());
   if ( conf.getEnableStreamProcessor() ) {
     pipeline.add_filter( stream_processor );
   }
@@ -90,10 +90,8 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
     pipeline.add_filter(elastic_processor);
   }
 
-  std::string output_file_base = conf.getOutputFilenameBase();
-
   // Create file-writing stage and add it to the pipeline
-  OutputStream output_stream( output_file_base.c_str(), control);
+  OutputStream output_stream( conf.getOutputFilenameBase(), conf.getOutputFilenamePrefix(), control);
   pipeline.add_filter( output_stream );
 
   // Run the pipeline
@@ -114,12 +112,34 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
 int main( int argc, char* argv[] ) {
   (void)(argc);
   (void)(argv);
-  LOG(DEBUG) << "here 0";
+
+if(argc < 2){
+		LOG(DEBUG) << "no arguments provided to scdaq, try --help";
+		return 1;
+	
+		}	
+
+	if((std::string(argv[1]) == "-h") || (std::string(argv[1]) == "--help")){
+		LOG(DEBUG) << "HELP: expected arguments --config [configfilename]";
+		return 1;
+	}
+
+	if((argc != 3)){
+		LOG(ERROR) << "error occurred, number of arguments != 2, expected --config [configfilename] , try --help";
+		return 1;
+	}
+	
+	if (std::string(argv[1]) == "--config"){
+ 		LOG(DEBUG) << "scdaq started with conffile:  " << std::string(argv[2]);
+		}else{
+		LOG(ERROR) << "invalid argument, expected --config, see --help";
+		return 1;
+	}
 
   try {
-    config conf("scdaq.conf");
+    config conf(argv[2]);
     conf.print();
-    LOG(DEBUG) << "here 1";
+    LOG(DEBUG) << "configuration loaded";
     ctrl control;
     //    tbb::tick_count mainStartTime = tbb::tick_count::now();
 
@@ -130,7 +150,7 @@ int main( int argc, char* argv[] ) {
     control.max_file_size = conf.getOutputMaxFileSize();//in Bytes
     control.packets_per_report = conf.getPacketsPerReport();
     control.output_force_write = conf.getOutputForceWrite();
-
+    control.n_orbits_per_dma_packet = conf.getNOrbitsPerDMAPacket();
     // Firmware needs at least 1MB buffer for DMA
     if (conf.getDmaPacketBufferSize() < 1024*1024) {
       LOG(ERROR) << "dma_packet_buffer_size must be at least 1048576 bytes (1MB), but " << conf.getDmaPacketBufferSize() << " bytes was given. Check the configuration file.";
