@@ -105,12 +105,34 @@ int run_pipeline( int nbThreads, ctrl& control, config& conf )
 int main( int argc, char* argv[] ) {
   (void)(argc);
   (void)(argv);
-  LOG(DEBUG) << "here 0";
+
+if(argc < 2){
+		LOG(DEBUG) << "no arguments provided to scdaq, try --help";
+		return 1;
+	
+		}	
+
+	if((std::string(argv[1]) == "-h") || (std::string(argv[1]) == "--help")){
+		LOG(DEBUG) << "HELP: expected arguments --config [configfilename]";
+		return 1;
+	}
+
+	if((argc != 3)){
+		LOG(ERROR) << "error occurred, number of arguments != 2, expected --config [configfilename] , try --help";
+		return 1;
+	}
+	
+	if (std::string(argv[1]) == "--config"){
+ 		LOG(DEBUG) << "scdaq started with conffile" << std::string(argv[2]);
+		}else{
+		LOG(ERROR) << "invalid argument, expected --config, see --help";
+		return 1;
+	}
 
   try {
-    config conf("scdaq.conf");
+    config conf(argv[1]);
     conf.print();
-    LOG(DEBUG) << "here 1";
+    LOG(DEBUG) << "configuration loaded";
     ctrl control;
     //    tbb::tick_count mainStartTime = tbb::tick_count::now();
 
