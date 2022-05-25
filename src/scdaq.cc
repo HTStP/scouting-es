@@ -123,14 +123,14 @@ if(argc < 2){
 	}
 	
 	if (std::string(argv[1]) == "--config"){
- 		LOG(DEBUG) << "scdaq started with conffile" << std::string(argv[2]);
+ 		LOG(DEBUG) << "scdaq started with conffile:   " << std::string(argv[2]);
 		}else{
 		LOG(ERROR) << "invalid argument, expected --config, see --help";
 		return 1;
 	}
 
   try {
-    config conf(argv[1]);
+    config conf(argv[2]);
     conf.print();
     LOG(DEBUG) << "configuration loaded";
     ctrl control;
