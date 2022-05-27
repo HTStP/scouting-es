@@ -14,7 +14,7 @@ umask 000 # Files and folders we create should be world accessible
 while true 
 do
     echo "Starting scdaq..."
-    /opt/scdaq/bin/scdaq /etc/scdaq/scdaq.conf 2>&1 | logger --tag scdaq --id -p user.debug
+    /opt/scdaq/bin/scdaq --config /etc/scdaq/scdaq.conf 2>&1 | logger --tag scdaq --id -p user.debug
     echo "Resetting the board..."
     ../scripts/reset-firmware.sh
     echo "Clearing caches..."
