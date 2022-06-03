@@ -73,6 +73,9 @@ public:
     if (input == "GMT") {
       return StreamProcessor::ProcessorType::GMT;
     }
+    if (input == "CALO") {
+      return StreamProcessor::ProcessorType::CALO;
+    }
     throw std::invalid_argument("Configuration error: Wrong processor type '" + input + "'");
   }
 

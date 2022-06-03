@@ -4,6 +4,15 @@
 #include <stdint.h>
 #include <math.h>
 
+struct blockCalo{
+  uint32_t calo0[8];
+  uint32_t calo1[8];
+  uint32_t calo2[8];
+  uint32_t calo3[8];
+  uint32_t calo4[8];
+  uint32_t calo5[8];
+};
+
 struct block1{
   uint32_t orbit[8];
   uint32_t bx[8];

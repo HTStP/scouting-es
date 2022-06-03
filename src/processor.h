@@ -13,7 +13,7 @@ class Slice;
 
 class StreamProcessor: public tbb::filter {
 public:
-  enum class ProcessorType { PASS_THROUGH, GMT };
+  enum class ProcessorType { PASS_THROUGH, GMT, CALO };
 
 public:
   StreamProcessor(size_t max_size_, bool doZS_, ProcessorType processorType_, uint32_t nOrbitsPerDMAPacket_);
@@ -24,7 +24,8 @@ private:
   Slice* process(Slice& input, Slice& out);
   bool CheckFrameMultBlock(uint32_t inputSize);  
   std::vector<unsigned int> CountBX(Slice& input);
-  uint32_t FillOrbit(Slice& input, Slice& out, std::vector<unsigned int>& bx_vect);
+  uint32_t FillOrbitMuon(Slice& input, Slice& out, std::vector<unsigned int>& bx_vect);
+  uint32_t FillOrbitCalo(Slice& input, Slice& out, std::vector<unsigned int>& bx_vect);
  
   std::ofstream myfile;
 private:
