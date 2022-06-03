@@ -71,8 +71,56 @@ std::vector<unsigned int> StreamProcessor::CountBX(Slice& input){
 
 }
 
+// Goes through orbit worth of data and fills the output memory with the calo data corresponding to the non-empty bunchcrossings, as marked in bx_vect
+uint32_t StreamProcessor::FillOrbitCalo(Slice& input, Slice& out, std::vector<unsigned int>& bx_vect){
+	//get orbit from orbit header
+	char* s = input.begin();
+	blockCalo *bl_pre = (blockCalo*)(s);
+	uint32_t orbitN = bl_pre->calo0[0];
+	
+	//save warning_test_enable bit
+	bool warning_test_enable = ( orbitN >> 0) & 1U;
+
+	//remove warning_test_enable bit from orbit header
+	orbitN |= 1UL << 0;	
+	
+	char* p = input.begin() + 32; // +32 to account for orbit header
+	char* q = out.begin();
+	uint32_t relbx = 0;
+	uint32_t counts = 0;
+	while(relbx < bx_vect.size()){ //total number of non-empty BXs in orbit is given by bx_vect.size()
+		blockCalo *bl = (blockCalo*)(p);
+		if(bl->calo0[0]==constants::beefdead){break;} // orbit trailer has been reached, end of orbit data
+
+		uint32_t header = (uint32_t)warning_test_enable; //header can be added to later
+		memcpy(q,(char*)&header,4); q+=4;
+		memcpy(q,(char*)&bx_vect[relbx],4); q+=4;
+		memcpy(q,(char*)&orbitN,4); q+=4;
+		for(uint32_t i = 0; i < 8; i++){
+			memcpy(q,(char*)&i,4); q+=4; //gives link number, can later be used to find object type
+			memcpy(q,(char*)&bl->calo0[i],4); q+=4;
+			memcpy(q,(char*)&bl->calo1[i],4); q+=4;
+			memcpy(q,(char*)&bl->calo2[i],4); q+=4;
+			memcpy(q,(char*)&bl->calo3[i],4); q+=4;
+			memcpy(q,(char*)&bl->calo4[i],4); q+=4;
+			memcpy(q,(char*)&bl->calo5[i],4); q+=4;
+		}
+
+		counts += 1;
+		p+=sizeof(blockCalo);
+		relbx++;
+		}
+
+return counts;
+}
+
 // Goes through orbit worth of data and fills the output memory with the muons corresponding to the non-empty bunchcrossings, as marked in bx_vect
-uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsigned int>& bx_vect){
+uint32_t StreamProcessor::FillOrbitMuon(Slice& input, Slice& out, std::vector<unsigned int>& bx_vect){
+	//get orbit from orbit header
+	char* s = input.begin();
+	block1 *bl_pre = (block1*)(s);
+	uint32_t orbitN = bl_pre->orbit[0];
+	
 	char* p = input.begin() + 32; // +32 to account for orbit header
 	char* q = out.begin(); // +32 to account for orbit header
 	uint32_t relbx = 0;
@@ -91,7 +139,8 @@ uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsign
 			uint32_t bx = bx_vect[relbx];
 			//std::cout << "bxA = " << std::dec << bxA << ", bx = "<< bx << std::endl;
 			uint32_t interm = (bl->bx[i] >> shifts::interm) & masks::interm;
-			uint32_t orbit = bl->orbit[i];
+			//uint32_t orbit = bl->orbit[i];
+			uint32_t orbit = orbitN;;
 
 			bxmatch += (bx==bx_vect[relbx])<<i;
 			orbitmatch += (orbit==bl->orbit[0])<<i; 
@@ -122,7 +171,7 @@ uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsign
 		counts += mBcount;
 		memcpy(q,(char*)&header,4); q+=4;
 		memcpy(q,(char*)&bx_vect[relbx],4); q+=4;
-		memcpy(q,(char*)&bl->orbit[0],4); q+=4;
+		memcpy(q,(char*)&orbitN,4); q+=4;
 		for(unsigned int i = 0; i < 8; i++){
 			if(AblocksOn[i]){
 				memcpy(q,(char*)&bl->mu1f[i],4); q+=4;
@@ -165,10 +214,19 @@ Slice* StreamProcessor::process(Slice& input, Slice& out)
 
 	if (!CheckFrameMultBlock(input.size())){ return &out; } 
 	while (endofpacket == false){
-
+		uint32_t orbitCount;
 		std::vector<unsigned int> bx_vect = CountBX(input);
 		std::sort(bx_vect.begin(), bx_vect.end());
-		uint32_t orbitCount = FillOrbit(input, out, bx_vect);
+		if (processorType == ProcessorType::GMT) {
+			orbitCount = FillOrbitMuon(input, out, bx_vect);
+		}else if (processorType == ProcessorType::CALO){
+			orbitCount = FillOrbitCalo(input, out, bx_vect);				
+		}else{
+
+                        LOG(ERROR) << "UNKNOWN PROCESSOR_TYPE, EXITING";
+    			throw std::invalid_argument("ERROR: PROCESSOR_TYPE NOT RECOGNISED");
+		}
+
 		p+= 32 + bx_vect.size()*sizeof(block1) + constants::orbit_trailer_size; // 32 for orbit header, + nBXs + orbit trailer
 		q+= orbitCount*12 + 12*bx_vect.size(); // 12 bytes for each muon/count then 12 bytes for each bx header
 		counts += orbitCount;
