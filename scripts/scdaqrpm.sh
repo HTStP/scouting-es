@@ -24,6 +24,8 @@ BASEDIR=$PWD
 PARAMCACHE="paramcache"
 NLINES=1
 ASK="1"
+TAG=$(git describe --tags)
+TAG=${TAG:1:5}
 
 if [ -n "$1" ]; then
   if [ "$1" = "--batch" ]; then
@@ -104,7 +106,7 @@ echo "working in $PWD"
 # we are done here, write the specs and make the fu***** rpm
 cat >scoutdaq.spec <<EOF
 Name: $PACKAGENAME$pkgsuffix
-Version: 0.1.0
+Version: $TAG
 Release: 0%{?dist}
 Summary: scouting daq
 License: gpl
@@ -118,16 +120,13 @@ AutoReqProv: no
 Provides:/opt/scdaq
 
 Requires: tbb boost-thread libcurl
-Obsoletes: scdaq
 
 %description
 scouting daq 
 
 %prep
 
-echo "PIPPPPPPPPO"
 echo $RPM_SOURCE_DIR
-echo "PIPPOOOOOOOOO"
 echo $BASEDIR
 cp -R $BASEDIR/src SOURCES/
 
@@ -163,7 +162,6 @@ echo "Copying files to their destination"
 cp $BASEDIR/init.d/runSCdaq.service      usr/lib/systemd/system/runSCdaq.service
 cp $BASEDIR/init.d/scoutboardResetServer.service usr/lib/systemd/system/scoutboardResetServer.service
 cp -R $BASEDIR/*                    opt/scdaq
-echo "PIPPOOOOOOOOOOO"
 pwd
 cp $TOPDIR/RPMBUILD/BUILD/SOURCES/scdaq opt/scdaq/bin/
 cp -R $BASEDIR/etc/scdaq/scdaq.conf        etc/scdaq/
