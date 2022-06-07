@@ -25,7 +25,7 @@ PARAMCACHE="paramcache"
 NLINES=1
 ASK="1"
 TAG=$(git describe --tags)
-TAG=${TAG:0:6}
+TAG=${TAG:1:5}
 
 if [ -n "$1" ]; then
   if [ "$1" = "--batch" ]; then
