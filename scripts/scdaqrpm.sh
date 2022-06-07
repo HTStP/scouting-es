@@ -120,7 +120,6 @@ AutoReqProv: no
 Provides:/opt/scdaq
 
 Requires: tbb boost-thread libcurl
-Obsoletes: scdaq
 
 %description
 scouting daq 
