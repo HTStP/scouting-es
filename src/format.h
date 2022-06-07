@@ -135,7 +135,7 @@ struct gmt_scales{
   static constexpr float eta_scale = 0.0870/8; //9th MS bit is sign
   static constexpr float phi_range = M_PI;
 };
-
+//11520 of overhead for 20 orbits
 struct constants{
   static constexpr uint32_t deadbeef           = 0xdeadbeef;
   static constexpr uint32_t beefdead           = 0xbeefdead;

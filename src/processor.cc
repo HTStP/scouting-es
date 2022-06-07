@@ -51,9 +51,9 @@ bool StreamProcessor::CheckFrameMultBlock(uint32_t inputSize){
 }
 
 // Looks for orbit trailer then counts the non-empty bunch crossings and fills a vector with their values
-std::vector<unsigned int> StreamProcessor::CountBX(Slice& input){
+std::vector<unsigned int> StreamProcessor::CountBX(Slice& input, char* p){
 
-	char* p = input.begin() + 32; // +32 to account for orbit header
+	p += 32; // +32 to account for orbit header
 	std::vector<unsigned int> bx_vect;
 	while( p != input.end()){
 		block1 *bl = (block1*)(p);
@@ -61,8 +61,7 @@ std::vector<unsigned int> StreamProcessor::CountBX(Slice& input){
 			orbit_trailer *ot = (orbit_trailer*)(p);
 			for (unsigned int k = 0; k < (14*8); k++){ // 14*8 = 14 frames, 8 links of orbit trailer containing BX hitmap
 				//bxcount += __builtin_popcount(ot->bx_map[k]);
-				bit_check(&bx_vect, ot->bx_map[k], k*32);
-			}
+				bit_check(&bx_vect, ot->bx_map[k], k*32);}
 			return bx_vect;
 		}
 
@@ -92,12 +91,12 @@ uint32_t StreamProcessor::FillOrbit(Slice& input, Slice& out, std::vector<unsign
 			//std::cout << "bxA = " << std::dec << bxA << ", bx = "<< bx << std::endl;
 			uint32_t interm = (bl->bx[i] >> shifts::interm) & masks::interm;
 			uint32_t orbit = bl->orbit[i];
-
+			//std::cout << "orbit " << orbit << std::endl;
 			bxmatch += (bx==bx_vect[relbx])<<i;
 			orbitmatch += (orbit==bl->orbit[0])<<i; 
 			uint32_t pt = (bl->mu1f[i] >> shifts::pt) & masks::pt;
 			uint32_t etae = (bl->mu1f[i] >> shifts::etaext) & masks::eta;
-
+			
 			AblocksOn[i]=((pt>0) || (doZS==0));
 			if((pt>0) || (doZS==0)){
 				mAcount++;
@@ -155,7 +154,7 @@ Slice* StreamProcessor::process(Slice& input, Slice& out)
 	char* q = out.begin();
 	uint32_t counts = 0;
 	bool endofpacket = false;
-
+	uint32_t orbit_per_packet_count = 0;
 	if (processorType == ProcessorType::PASS_THROUGH) {
 		memcpy(q,p,input.size());
 		out.set_end(out.begin() + input.size());
@@ -166,11 +165,13 @@ Slice* StreamProcessor::process(Slice& input, Slice& out)
 	if (!CheckFrameMultBlock(input.size())){ return &out; } 
 	while (endofpacket == false){
 
-		std::vector<unsigned int> bx_vect = CountBX(input);
+		std::vector<unsigned int> bx_vect = CountBX(input, p);
 		std::sort(bx_vect.begin(), bx_vect.end());
 		uint32_t orbitCount = FillOrbit(input, out, bx_vect);
+		orbit_per_packet_count++;
 		p+= 32 + bx_vect.size()*sizeof(block1) + constants::orbit_trailer_size; // 32 for orbit header, + nBXs + orbit trailer
 		q+= orbitCount*12 + 12*bx_vect.size(); // 12 bytes for each muon/count then 12 bytes for each bx header
+		//std::cout << "orbits per packet count " << orbitCount << std::endl;
 		counts += orbitCount;
 		bx_vect.clear();
 
@@ -184,6 +185,13 @@ Slice* StreamProcessor::process(Slice& input, Slice& out)
 				out.set_counts(counts);
 				return &out;
 			}
+
+			if(orbit_per_packet_count > nOrbitsPerDMAPacket){
+                        
+			LOG(WARNING) << "expected DMA trailer word deadbeef, found " << std::hex << *dma_trailer_word << ". Orbits per packet count " << orbit_per_packet_count  << ", > expected, (" << nOrbitsPerDMAPacket <<") skipping packet.";
+			return &out;
+}		
+
 		}
 	}
 }

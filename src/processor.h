@@ -23,7 +23,7 @@ public:
 private:
   Slice* process(Slice& input, Slice& out);
   bool CheckFrameMultBlock(uint32_t inputSize);  
-  std::vector<unsigned int> CountBX(Slice& input);
+  std::vector<unsigned int> CountBX(Slice& input, char* p);
   uint32_t FillOrbit(Slice& input, Slice& out, std::vector<unsigned int>& bx_vect);
  
   std::ofstream myfile;
